@@ -129,8 +129,9 @@ namespace TicketLightAdmin.Pages
 
                         // 🔸 Генерация билета (QR-код и штрихкод)
                         string barcode = GenerateRandomBarcode();
-                        string qrData = $"{selectedApplication.UserName}|{categoryName}";
+                        string qrData = $"{selectedApplication.FullName}|{selectedApplication.Email}|{selectedApplication.PhoneNumber}|{categoryName}";
                         DateTime expiryDate = DateTime.Now.AddMonths(6);
+
 
                         string insertTicketQuery = @"
                     INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
@@ -213,5 +214,9 @@ namespace TicketLightAdmin.Pages
         public string Status { get; set; }
         public DateTime SubmissionDate { get; set; }
         public DateTime? ApprovalDate { get; set; }
+
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
     }
 }
