@@ -24,7 +24,13 @@ namespace TicketLightAdmin.Pages
         public ApplicationsPage()
         {
             InitializeComponent();
+            this.Loaded += LoadApplications_Loaded; // Привязываем событие Loaded
+        }
+
+        private void LoadApplications_Loaded(object sender, RoutedEventArgs e)
+        {
             LoadApplications();
+
         }
 
         // 🔹 Загрузка заявок из БД

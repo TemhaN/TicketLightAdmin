@@ -16,6 +16,11 @@ namespace TicketLightAdmin.Pages
         public BenefitCategoriesPage()
         {
             InitializeComponent();
+            this.Loaded += LoadCategories_Loaded; // Привязываем событие Loaded
+        }
+
+        private void LoadCategories_Loaded(object sender, RoutedEventArgs e)
+        {
             LoadCategories();
         }
 

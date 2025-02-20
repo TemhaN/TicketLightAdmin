@@ -174,14 +174,30 @@ namespace TicketLightAdmin.Pages
                                 cmd.ExecuteNonQuery();
                             }
 
-                            // 4️⃣ Генерируем QR-код с новой ролью
+                            // 4️⃣ Проверяем, есть ли уже билет
+                            string checkTicketQuery = "SELECT COUNT(*) FROM Tickets WHERE ApplicationId = @ApplicationId";
+                            int ticketCount = 0;
+                            using (SqlCommand cmd = new SqlCommand(checkTicketQuery, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@ApplicationId", applicationId);
+                                ticketCount = (int)cmd.ExecuteScalar();
+                            }
+
+                            if (ticketCount > 0)
+                            {
+                                MessageBox.Show($"Билет для {selectedUser.FullName} уже существует!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                transaction.Rollback();
+                                return;
+                            }
+
+                            // 5️⃣ Генерируем новый билет
                             string qrData = $"{selectedUser.FullName}|{selectedUser.Email}|{selectedUser.PhoneNumber}|{categoryName}";
                             string barcode = GenerateRandomBarcode();
                             DateTime expiryDate = DateTime.Now.AddMonths(6);
 
                             string insertTicketQuery = @"
-                        INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
-                        VALUES (@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
+                    INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
+                    VALUES (@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
 
                             using (SqlCommand cmd = new SqlCommand(insertTicketQuery, conn, transaction))
                             {
@@ -192,12 +208,12 @@ namespace TicketLightAdmin.Pages
                                 cmd.ExecuteNonQuery();
                             }
 
-                            // 5️⃣ Обновляем ApprovalDate и Status в Applications
+                            // 6️⃣ Обновляем статус заявки (если ещё не "Принят")
                             string updateApplicationQuery = @"
-                        UPDATE Applications
-                        SET ApprovalDate = GETDATE(),
-                            Status = CASE WHEN Status != N'Принят' THEN N'Принят' ELSE Status END
-                        WHERE ApplicationId = @ApplicationId";
+                    UPDATE Applications
+                    SET ApprovalDate = GETDATE(),
+                        Status = CASE WHEN Status != N'Принят' THEN N'Принят' ELSE Status END
+                    WHERE ApplicationId = @ApplicationId";
 
                             using (SqlCommand cmd = new SqlCommand(updateApplicationQuery, conn, transaction))
                             {
