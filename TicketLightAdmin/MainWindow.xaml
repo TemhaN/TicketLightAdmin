@@ -1,0 +1,22 @@
+﻿<Window x:Class="TicketLightAdmin.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TicketLight Admin" Height="500" Width="1200"
+        xmlns:mui="http://firstfloorsoftware.com/ModernUI">
+    <Grid>
+        <TabControl>
+            <TabItem Header="👤 Пользователи">
+                <Frame Source="Pages/UsersPage.xaml"/>
+            </TabItem>
+            <TabItem Header="📄 Заявки">
+                <Frame Source="Pages/ApplicationsPage.xaml"/>
+            </TabItem>
+            <TabItem Header="🎫 Билеты">
+                <Frame Source="Pages/TicketsPage.xaml"/>
+            </TabItem>
+            <TabItem Header="🏷️ Категории льгот">
+                <Frame Source="Pages/BenefitCategoriesPage.xaml"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

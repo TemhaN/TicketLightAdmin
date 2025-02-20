@@ -1,0 +1,32 @@
+﻿<Page x:Class="TicketLightAdmin.Pages.ApplicationsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="ApplicationsPage">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Заявки" FontSize="24" HorizontalAlignment="Center" Margin="10"/>
+
+            <DataGrid x:Name="ApplicationsDataGrid" AutoGenerateColumns="False" Height="300" Margin="10" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding ApplicationId}" Width="50"/>
+                    <DataGridTextColumn Header="Пользователь" Binding="{Binding UserName}" Width="200"/>
+                    <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" Width="200"/>
+                    <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="150"/>
+                    <DataGridTextColumn Header="Дата подачи" Binding="{Binding SubmissionDate}" Width="150"/>
+                    <DataGridTextColumn Header="Дата одобрения" Binding="{Binding ApprovalDate}" Width="150"/>
+
+                    <DataGridTemplateColumn Header="Действия" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="✔️ Одобрить" Width="100" Margin="5" Click="ApproveApplication_Click"/>
+                                    <Button Content="🗑️ Удалить" Width="80" Margin="5" Click="DeleteApplication_Click"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </Grid>
+</Page>
