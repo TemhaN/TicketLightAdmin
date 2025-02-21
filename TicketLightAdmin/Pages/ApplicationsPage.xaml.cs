@@ -82,17 +82,9 @@ namespace TicketLightAdmin.Pages
 
                     try
                     {
-                        // 🔸 Обновляем статус заявки
-                        string updateQuery = "UPDATE Applications SET Status='Принято', ApprovalDate=@ApprovalDate WHERE ApplicationId=@ApplicationId";
-                        using (SqlCommand cmd = new SqlCommand(updateQuery, conn, transaction))
-                        {
-                            cmd.Parameters.AddWithValue("@ApprovalDate", DateTime.Now);
-                            cmd.Parameters.AddWithValue("@ApplicationId", selectedApplication.ApplicationId);
-                            cmd.ExecuteNonQuery();
-                        }
-
-                        // 🔸 Получаем UserId и CategoryId
+                        // 🔸 Получаем UserId и CategoryId перед обновлением статуса
                         int userId = 0, categoryId = 0;
+                        string fullName = "", email = "", phoneNumber = "";
                         string getUserAndCategoryQuery = "SELECT UserId, CategoryId FROM Applications WHERE ApplicationId = @ApplicationId";
                         using (SqlCommand cmd = new SqlCommand(getUserAndCategoryQuery, conn, transaction))
                         {
@@ -107,19 +99,42 @@ namespace TicketLightAdmin.Pages
                             }
                         }
 
-                        // 🔸 Получаем название категории
+                        if (userId == 0 || categoryId == 0)
+                        {
+                            MessageBox.Show("Ошибка: Не удалось получить данные заявки!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            transaction.Rollback();
+                            return;
+                        }
+
+                        // 🔸 Получаем данные пользователя
+                        string getUserDataQuery = "SELECT FullName, Email, PhoneNumber FROM Users WHERE UserId = @UserId";
+                        using (SqlCommand cmd = new SqlCommand(getUserDataQuery, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@UserId", userId);
+                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    fullName = reader["FullName"].ToString();
+                                    email = reader["Email"].ToString();
+                                    phoneNumber = reader["PhoneNumber"].ToString();
+                                }
+                            }
+                        }
+
+                        // 🔸 Получаем категорию
                         string categoryName = null;
                         string getCategoryQuery = "SELECT CategoryName FROM BenefitCategories WHERE CategoryId = @CategoryId";
                         using (SqlCommand cmd = new SqlCommand(getCategoryQuery, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@CategoryId", categoryId);
                             object result = cmd.ExecuteScalar();
-                            if (result != null) categoryName = result.ToString();
+                            categoryName = result?.ToString();
                         }
 
-                        if (string.IsNullOrEmpty(categoryName))
+                        if (string.IsNullOrWhiteSpace(categoryName))
                         {
-                            MessageBox.Show("Ошибка: Не удалось определить категорию!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Ошибка: Категория не найдена!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                             transaction.Rollback();
                             return;
                         }
@@ -133,15 +148,29 @@ namespace TicketLightAdmin.Pages
                             cmd.ExecuteNonQuery();
                         }
 
+                        // 🔸 Обновляем статус заявки
+                        string updateQuery = "UPDATE Applications SET Status=N'Принят', ApprovalDate=@ApprovalDate WHERE ApplicationId=@ApplicationId";
+                        using (SqlCommand cmd = new SqlCommand(updateQuery, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@ApprovalDate", DateTime.Now);
+                            cmd.Parameters.AddWithValue("@ApplicationId", selectedApplication.ApplicationId);
+                            cmd.ExecuteNonQuery();
+                        }
+
                         // 🔸 Генерация билета (QR-код и штрихкод)
                         string barcode = GenerateRandomBarcode();
-                        string qrData = $"{selectedApplication.FullName}|{selectedApplication.Email}|{selectedApplication.PhoneNumber}|{categoryName}";
-                        DateTime expiryDate = DateTime.Now.AddMonths(6);
 
+                        string safeFullName = string.IsNullOrWhiteSpace(fullName?.Trim()) ? "Неизвестно" : fullName.Replace("|", "-");
+                        string safeEmail = string.IsNullOrWhiteSpace(email?.Trim()) ? "Неизвестно" : email.Replace("|", "-");
+                        string safePhoneNumber = string.IsNullOrWhiteSpace(phoneNumber?.Trim()) ? "Неизвестно" : phoneNumber.Replace("|", "-");
+                        string safeCategoryName = string.IsNullOrWhiteSpace(categoryName?.Trim()) ? "Неизвестно" : categoryName.Replace("|", "-");
+
+                        string qrData = $"{safeFullName}|{safeEmail}|{safePhoneNumber}|{safeCategoryName}";
+                        DateTime expiryDate = DateTime.Now.AddYears(1);
 
                         string insertTicketQuery = @"
-                    INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
-                    VALUES (@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
+                        INSERT INTO Tickets(ApplicationId, QRCode, Barcode, ExpiryDate)
+                        VALUES(@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
 
                         using (SqlCommand cmd = new SqlCommand(insertTicketQuery, conn, transaction))
                         {
@@ -154,7 +183,7 @@ namespace TicketLightAdmin.Pages
 
                         transaction.Commit(); // ✅ Подтверждаем изменения
 
-                        MessageBox.Show($"Билет для {selectedApplication.UserName} создан!\nКатегория: {categoryName}\nДействует до: {expiryDate.ToShortDateString()}",
+                        MessageBox.Show($"Билет для {safeFullName} создан!\nКатегория: {safeCategoryName}\nДействует до: {expiryDate.ToShortDateString()}",
                             "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
                         LoadApplications();
@@ -171,6 +200,7 @@ namespace TicketLightAdmin.Pages
                 }
             }
         }
+
 
 
         // 🔹 Удаление заявки
