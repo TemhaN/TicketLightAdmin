@@ -18,7 +18,7 @@ namespace TicketLightAdmin.Pages
 {
     public partial class ApplicationsPage : Page
     {
-        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
+        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight2;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
         private List<ApplicationModel> applications = new List<ApplicationModel>();
 
         public ApplicationsPage()

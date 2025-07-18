@@ -12,6 +12,7 @@
                     <DataGridTextColumn Header="ФИО" Binding="{Binding FullName}" Width="200"/>
                     <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="200"/>
                     <DataGridTextColumn Header="Телефон" Binding="{Binding PhoneNumber}" Width="150"/>
+                    <DataGridTextColumn Header="ИИН" Binding="{Binding IIN}" Width="120"/>
                     <DataGridTextColumn Header="Роль" Binding="{Binding Role}" Width="100"/>
                     <DataGridTextColumn Header="Дата рег." Binding="{Binding RegistrationDate}" Width="150"/>
 

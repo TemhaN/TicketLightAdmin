@@ -1,0 +1,36 @@
+﻿<Page x:Class="TicketLightAdmin.Pages.WalletTransactionsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="WalletTransactionsPage">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Транзакции" FontSize="24" HorizontalAlignment="Center" Margin="10"/>
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <TextBox x:Name="SearchTextBox" Width="200" Margin="5" TextChanged="SearchTextBox_TextChanged"/>
+                <ComboBox x:Name="WalletsComboBox" Width="200" DisplayMemberPath="UserName" SelectedValuePath="WalletId" Margin="5"/>
+                <ComboBox x:Name="TransactionTypeComboBox" Width="150" Margin="5">
+                    <ComboBoxItem Content="Все"/>
+                    <ComboBoxItem Content="Пополнение"/>
+                    <ComboBoxItem Content="Списание"/>
+                </ComboBox>
+            </StackPanel>
+            <DataGrid x:Name="TransactionsDataGrid" AutoGenerateColumns="False" Height="300" Margin="10" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding TransactionId}" Width="50"/>
+                    <DataGridTextColumn Header="Кошелек" Binding="{Binding WalletId}" Width="100"/>
+                    <DataGridTextColumn Header="Пользователь" Binding="{Binding UserName}" Width="200"/>
+                    <DataGridTextColumn Header="Сумма" Binding="{Binding Amount, StringFormat={}{0:N2} ₸}" Width="150"/>
+                    <DataGridTextColumn Header="Тип" Binding="{Binding TransactionType}" Width="100"/>
+                    <DataGridTextColumn Header="Дата" Binding="{Binding CreatedAt}" Width="150"/>
+                    <DataGridTemplateColumn Header="Действия" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="🗑️" Width="30" Margin="5" Click="DeleteTransaction_Click"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </Grid>
+</Page>

@@ -9,7 +9,6 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
-using System.Windows.Media;
 using Microsoft.VisualBasic;
 using QRCoder;
 using System.Drawing.Imaging;
@@ -19,23 +18,22 @@ namespace TicketLightAdmin.Pages
 {
     public partial class TicketsPage : Page
     {
-        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
+        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight2;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
         private List<Ticket> tickets = new List<Ticket>();
         private List<User> users = new List<User>();
 
         public TicketsPage()
         {
             InitializeComponent();
-            this.Loaded += TicketsPage_Loaded; // Привязываем событие Loaded
+            this.Loaded += TicketsPage_Loaded;
         }
 
         private void TicketsPage_Loaded(object sender, RoutedEventArgs e)
         {
-            LoadTickets(); // Загружаем билеты
-            LoadUsersWithApplications(); // Загружаем пользователей с заявками
+            LoadTickets();
+            LoadUsersWithApplications();
         }
 
-        // 🔹 Загрузка билетов
         public void LoadTickets()
         {
             tickets.Clear();
@@ -66,7 +64,6 @@ namespace TicketLightAdmin.Pages
             TicketsDataGrid.ItemsSource = tickets;
         }
 
-        // 🔹 Загрузка пользователей для выпадающего списка (исключая тех, у кого заявка принята)
         private void LoadUsersWithApplications()
         {
             UsersComboBox.Items.Clear();
@@ -75,10 +72,10 @@ namespace TicketLightAdmin.Pages
             {
                 conn.Open();
                 string query = @"
-            SELECT DISTINCT u.UserId, u.FullName, u.Email, u.PhoneNumber, u.Role 
-            FROM Users u
-            JOIN Applications a ON u.UserId = a.UserId
-            WHERE a.Status <> N'Принят'"; // 🔹 Исключаем заявки со статусом 'Принят'
+                    SELECT DISTINCT u.UserId, u.FullName, u.Email, u.PhoneNumber, u.Role 
+                    FROM Users u
+                    JOIN Applications a ON u.UserId = a.UserId
+                    WHERE a.Status <> N'Принят'";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -114,9 +111,6 @@ namespace TicketLightAdmin.Pages
             }
         }
 
-
-
-        // 🔹 Генерация билета
         private void GenerateTicket_Click(object sender, RoutedEventArgs e)
         {
             if (UsersComboBox.SelectedItem is User selectedUser)
@@ -131,11 +125,10 @@ namespace TicketLightAdmin.Pages
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    using (SqlTransaction transaction = conn.BeginTransaction()) // 🔹 Транзакция
+                    using (SqlTransaction transaction = conn.BeginTransaction())
                     {
                         try
                         {
-                            // 1️⃣ Получаем CategoryId из заявки
                             string getCategoryQuery = "SELECT CategoryId FROM Applications WHERE ApplicationId = @ApplicationId";
                             int? categoryId = null;
                             using (SqlCommand cmd = new SqlCommand(getCategoryQuery, conn, transaction))
@@ -145,7 +138,6 @@ namespace TicketLightAdmin.Pages
                                 if (result != null) categoryId = Convert.ToInt32(result);
                             }
 
-                            // 2️⃣ Получаем CategoryName из BenefitCategories
                             string categoryName = null;
                             if (categoryId.HasValue)
                             {
@@ -165,7 +157,6 @@ namespace TicketLightAdmin.Pages
                                 return;
                             }
 
-                            // 3️⃣ Обновляем роль пользователя в Users
                             string updateUserRoleQuery = "UPDATE Users SET Role = @Role WHERE UserId = @UserId";
                             using (SqlCommand cmd = new SqlCommand(updateUserRoleQuery, conn, transaction))
                             {
@@ -174,7 +165,6 @@ namespace TicketLightAdmin.Pages
                                 cmd.ExecuteNonQuery();
                             }
 
-                            // 4️⃣ Проверяем, есть ли уже билет
                             string checkTicketQuery = "SELECT COUNT(*) FROM Tickets WHERE ApplicationId = @ApplicationId";
                             int ticketCount = 0;
                             using (SqlCommand cmd = new SqlCommand(checkTicketQuery, conn, transaction))
@@ -190,14 +180,13 @@ namespace TicketLightAdmin.Pages
                                 return;
                             }
 
-                            // 5️⃣ Генерируем новый билет
                             string qrData = $"{selectedUser.FullName}|{selectedUser.Email}|{selectedUser.PhoneNumber}|{categoryName}";
                             string barcode = GenerateRandomBarcode();
                             DateTime expiryDate = DateTime.Now.AddMonths(6);
 
                             string insertTicketQuery = @"
-                    INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
-                    VALUES (@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
+                                INSERT INTO Tickets (ApplicationId, QRCode, Barcode, ExpiryDate)
+                                VALUES (@ApplicationId, @QRCode, @Barcode, @ExpiryDate)";
 
                             using (SqlCommand cmd = new SqlCommand(insertTicketQuery, conn, transaction))
                             {
@@ -208,12 +197,11 @@ namespace TicketLightAdmin.Pages
                                 cmd.ExecuteNonQuery();
                             }
 
-                            // 6️⃣ Обновляем статус заявки (если ещё не "Принят")
                             string updateApplicationQuery = @"
-                    UPDATE Applications
-                    SET ApprovalDate = GETDATE(),
-                        Status = CASE WHEN Status != N'Принят' THEN N'Принят' ELSE Status END
-                    WHERE ApplicationId = @ApplicationId";
+                                UPDATE Applications
+                                SET ApprovalDate = GETDATE(),
+                                    Status = CASE WHEN Status != N'Принят' THEN N'Принят' ELSE Status END
+                                WHERE ApplicationId = @ApplicationId";
 
                             using (SqlCommand cmd = new SqlCommand(updateApplicationQuery, conn, transaction))
                             {
@@ -221,7 +209,7 @@ namespace TicketLightAdmin.Pages
                                 cmd.ExecuteNonQuery();
                             }
 
-                            transaction.Commit(); // 🔹 Подтверждаем транзакцию
+                            transaction.Commit();
                             MessageBox.Show($"Билет для {selectedUser.FullName} создан!\nСтатус заявки: 'Принят'\nРоль обновлена: {categoryName}",
                                 "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -229,7 +217,7 @@ namespace TicketLightAdmin.Pages
                         }
                         catch (Exception ex)
                         {
-                            transaction.Rollback(); // 🔹 Откат в случае ошибки
+                            transaction.Rollback();
                             MessageBox.Show($"Ошибка при создании билета: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
@@ -243,11 +231,37 @@ namespace TicketLightAdmin.Pages
             }
         }
 
+        // 🔹 Получение актуальных данных пользователя по ApplicationId
+        private (string fullName, string email, string phone, string role)? GetUserDataByApplicationId(int applicationId)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = @"
+                    SELECT u.FullName, u.Email, u.PhoneNumber, u.Role
+                    FROM Users u
+                    JOIN Applications a ON u.UserId = a.UserId
+                    WHERE a.ApplicationId = @ApplicationId";
 
-
-
-
-
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ApplicationId", applicationId);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return (
+                                reader.GetString(0).Trim(),
+                                reader.GetString(1).Trim(),
+                                reader.GetString(2).Trim(),
+                                reader.GetString(3).Trim()
+                            );
+                        }
+                    }
+                }
+            }
+            return null;
+        }
 
         // 🔹 Показать QR-код
         private void ViewQRCode_Click(object sender, RoutedEventArgs e)
@@ -261,20 +275,18 @@ namespace TicketLightAdmin.Pages
                     return;
                 }
 
-                // Проверяем структуру данных
-                string[] userData = qrData.Split('|');
-                //MessageBox.Show($"Получено частей: {userData.Length}", "Отладка", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                if (userData.Length != 4)
+                // Получаем актуальные данные пользователя из базы
+                var userData = GetUserDataByApplicationId(selectedTicket.ApplicationId);
+                if (userData == null)
                 {
-                    MessageBox.Show("Некорректные данные QR-кода. Ожидалось 4 части!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Не удалось получить данные пользователя!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                string fullName = userData[0].Trim();
-                string email = userData[1].Trim();
-                string phone = userData[2].Trim();
-                string role = userData[3].Trim();
+                string fullName = userData.Value.fullName;
+                string email = userData.Value.email;
+                string phone = userData.Value.phone;
+                string role = userData.Value.role;
 
                 BitmapImage qrImage = GenerateQRCode(qrData);
                 if (qrImage == null)
@@ -283,7 +295,7 @@ namespace TicketLightAdmin.Pages
                     return;
                 }
 
-                QRCodeWindow qrWindow = new TicketLightAdmin.Pages.QRCodeWindow(qrImage, fullName, email, phone, role);
+                QRCodeWindow qrWindow = new QRCodeWindow(qrImage, fullName, email, phone, role);
                 qrWindow.ShowDialog();
             }
             else
@@ -292,9 +304,6 @@ namespace TicketLightAdmin.Pages
             }
         }
 
-
-
-        // 🔹 Генерация изображения QR-кода
         private BitmapImage GenerateQRCode(string qrData)
         {
             try
@@ -325,27 +334,6 @@ namespace TicketLightAdmin.Pages
             }
         }
 
-
-        private ImageSource BitmapToImageSource(Bitmap bitmap)
-        {
-            using (MemoryStream memory = new MemoryStream())
-            {
-                bitmap.Save(memory, System.Drawing.Imaging.ImageFormat.Png);
-                memory.Position = 0;
-
-                BitmapImage bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = memory;
-                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapImage.EndInit();
-
-                return bitmapImage;
-            }
-        }
-
-
-
-        // 🔹 Генерация случайного штрихкода (12 цифр)
         private string GenerateRandomBarcode()
         {
             Random random = new Random();
@@ -357,7 +345,6 @@ namespace TicketLightAdmin.Pages
             return barcode.ToString();
         }
 
-        // 🔹 Редактирование билета
         private void EditTicket_Click(object sender, RoutedEventArgs e)
         {
             if (TicketsDataGrid.SelectedItem is Ticket selectedTicket)
@@ -392,9 +379,6 @@ namespace TicketLightAdmin.Pages
             }
         }
 
-
-        // 🔹 Удаление билета
-        // 🔹 Удаление билета и связанной заявки
         private void DeleteTicket_Click(object sender, RoutedEventArgs e)
         {
             if (TicketsDataGrid.SelectedItem is Ticket selectedTicket)
@@ -405,7 +389,6 @@ namespace TicketLightAdmin.Pages
                     {
                         conn.Open();
 
-                        // 1️⃣ Получаем ApplicationId, связанный с этим билетом
                         int applicationId = -1;
                         string getAppQuery = "SELECT ApplicationId FROM Tickets WHERE TicketId = @TicketId";
 
@@ -417,7 +400,6 @@ namespace TicketLightAdmin.Pages
                                 applicationId = Convert.ToInt32(result);
                         }
 
-                        // 2️⃣ Удаляем билет
                         string deleteTicketQuery = "DELETE FROM Tickets WHERE TicketId = @TicketId";
                         using (SqlCommand deleteTicketCmd = new SqlCommand(deleteTicketQuery, conn))
                         {
@@ -425,7 +407,6 @@ namespace TicketLightAdmin.Pages
                             deleteTicketCmd.ExecuteNonQuery();
                         }
 
-                        // 3️⃣ Удаляем заявку, если она была найдена
                         if (applicationId != -1)
                         {
                             string deleteAppQuery = "DELETE FROM Applications WHERE ApplicationId = @ApplicationId";
@@ -442,7 +423,6 @@ namespace TicketLightAdmin.Pages
             }
         }
 
-
         public class Ticket
         {
             public int TicketId { get; set; }
@@ -450,6 +430,15 @@ namespace TicketLightAdmin.Pages
             public string QRCode { get; set; }
             public string Barcode { get; set; }
             public DateTime ExpiryDate { get; set; }
+        }
+
+        public class User
+        {
+            public int UserId { get; set; }
+            public string FullName { get; set; }
+            public string Email { get; set; }
+            public string PhoneNumber { get; set; }
+            public string Role { get; set; }
         }
     }
 }

@@ -1,10 +1,13 @@
 ﻿<Window x:Class="TicketLightAdmin.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TicketLight Admin" Height="500" Width="1200"
+        Title="TicketLight Admin" Height="630" Width="1400"
         xmlns:mui="http://firstfloorsoftware.com/ModernUI">
     <Grid>
         <TabControl>
+            <TabItem Header="📊 Статистика">
+                <Frame Source="Pages/StatisticsPage.xaml"/>
+            </TabItem>
             <TabItem Header="👤 Пользователи">
                 <Frame Source="Pages/UsersPage.xaml"/>
             </TabItem>
@@ -16,6 +19,12 @@
             </TabItem>
             <TabItem Header="🏷️ Категории льгот">
                 <Frame Source="Pages/BenefitCategoriesPage.xaml"/>
+            </TabItem>
+            <TabItem Header="💰 Кошельки">
+                <Frame Source="Pages/WalletsPage.xaml"/>
+            </TabItem>
+            <TabItem Header="💸 Транзакции">
+                <Frame Source="Pages/WalletTransactionsPage.xaml"/>
             </TabItem>
         </TabControl>
     </Grid>

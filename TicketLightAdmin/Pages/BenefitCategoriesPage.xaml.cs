@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Text;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.VisualBasic;
@@ -10,78 +10,84 @@ namespace TicketLightAdmin.Pages
 {
     public partial class BenefitCategoriesPage : Page
     {
-        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
+        private string connectionString = "Server=TEMHANLAPTOP\\TDG2022;Database=TicketLight2;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
         private List<BenefitCategory> categories = new List<BenefitCategory>();
 
         public BenefitCategoriesPage()
         {
             InitializeComponent();
-            this.Loaded += LoadCategories_Loaded; // Привязываем событие Loaded
+            this.Loaded += BenefitCategoriesPage_Loaded;
         }
 
-        private void LoadCategories_Loaded(object sender, RoutedEventArgs e)
+        private void BenefitCategoriesPage_Loaded(object sender, RoutedEventArgs e)
         {
             LoadCategories();
         }
 
-        // 🔹 Загрузка категорий из БД
         private void LoadCategories()
         {
             categories.Clear();
-
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-                string query = "SELECT CategoryId, CategoryName, Description FROM BenefitCategories";
-
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    while (reader.Read())
+                    conn.Open();
+                    string query = "SELECT CategoryId, CategoryName, Description FROM BenefitCategories";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        categories.Add(new BenefitCategory
+                        while (reader.Read())
                         {
-                            CategoryId = reader.GetInt32(0),
-                            CategoryName = reader.GetString(1),
-                            Description = reader.GetString(2)
-                        });
+                            categories.Add(new BenefitCategory
+                            {
+                                CategoryId = reader.GetInt32(0),
+                                CategoryName = reader.IsDBNull(1) ? null : reader.GetString(1),
+                                Description = reader.IsDBNull(2) ? null : reader.GetString(2)
+                            });
+                        }
                     }
                 }
+                CategoriesDataGrid.ItemsSource = null;
+                CategoriesDataGrid.ItemsSource = categories;
             }
-
-            CategoriesDataGrid.ItemsSource = null;
-            CategoriesDataGrid.ItemsSource = categories;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки категорий: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        // 🔹 Добавление категории
         private void AddCategory_Click(object sender, RoutedEventArgs e)
         {
-            string newName = Interaction.InputBox("Введите название категории:", "Добавление", "");
-            string newDescription = Interaction.InputBox("Введите описание категории:", "Добавление", "");
-
-            if (string.IsNullOrWhiteSpace(newName))
+            if (string.IsNullOrEmpty(CategoryNameTextBox.Text) || string.IsNullOrEmpty(DescriptionTextBox.Text))
             {
-                MessageBox.Show("Название категории не может быть пустым!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Заполните все поля!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-                string query = "INSERT INTO BenefitCategories (CategoryName, Description) VALUES (@CategoryName, @Description)";
-
-                using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    cmd.Parameters.AddWithValue("@CategoryName", newName);
-                    cmd.Parameters.AddWithValue("@Description", newDescription);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string query = "INSERT INTO BenefitCategories (CategoryName, Description) VALUES (@CategoryName, @Description)";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@CategoryName", CategoryNameTextBox.Text);
+                        cmd.Parameters.AddWithValue("@Description", DescriptionTextBox.Text);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoadCategories();
+                CategoryNameTextBox.Text = string.Empty;
+                DescriptionTextBox.Text = string.Empty;
+                MessageBox.Show("Категория добавлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-
-            LoadCategories();
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка добавления категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        // 🔹 Редактирование категории
         private void EditCategory_Click(object sender, RoutedEventArgs e)
         {
             if (CategoriesDataGrid.SelectedItem is BenefitCategory selectedCategory)
@@ -89,56 +95,72 @@ namespace TicketLightAdmin.Pages
                 string newName = Interaction.InputBox("Введите новое название:", "Редактирование", selectedCategory.CategoryName);
                 string newDescription = Interaction.InputBox("Введите новое описание:", "Редактирование", selectedCategory.Description);
 
-                if (string.IsNullOrWhiteSpace(newName))
-                {
-                    MessageBox.Show("Название категории не может быть пустым!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    string query = "UPDATE BenefitCategories SET CategoryName=@CategoryName, Description=@Description WHERE CategoryId=@CategoryId";
-
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@CategoryName", newName);
-                        cmd.Parameters.AddWithValue("@Description", newDescription);
-                        cmd.Parameters.AddWithValue("@CategoryId", selectedCategory.CategoryId);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-
-                LoadCategories();
-            }
-        }
-
-        // 🔹 Удаление категории
-        private void DeleteCategory_Click(object sender, RoutedEventArgs e)
-        {
-            if (CategoriesDataGrid.SelectedItem is BenefitCategory selectedCategory)
-            {
-                if (MessageBox.Show($"Удалить категорию {selectedCategory.CategoryName}?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                try
                 {
                     using (SqlConnection conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
-                        string query = "DELETE FROM BenefitCategories WHERE CategoryId=@CategoryId";
-
+                        string query = "UPDATE BenefitCategories SET CategoryName=@CategoryName, Description=@Description WHERE CategoryId=@CategoryId";
                         using (SqlCommand cmd = new SqlCommand(query, conn))
                         {
+                            cmd.Parameters.AddWithValue("@CategoryName", string.IsNullOrWhiteSpace(newName) ? selectedCategory.CategoryName : newName);
+                            cmd.Parameters.AddWithValue("@Description", string.IsNullOrWhiteSpace(newDescription) ? selectedCategory.Description : newDescription);
                             cmd.Parameters.AddWithValue("@CategoryId", selectedCategory.CategoryId);
                             cmd.ExecuteNonQuery();
                         }
                     }
-
                     LoadCategories();
+                    MessageBox.Show("Категория обновлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка редактирования категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void DeleteCategory_Click(object sender, RoutedEventArgs e)
+        {
+            if (CategoriesDataGrid.SelectedItem is BenefitCategory selectedCategory)
+            {
+                if (MessageBox.Show($"Удалить категорию: {selectedCategory.CategoryName}?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        using (SqlConnection conn = new SqlConnection(connectionString))
+                        {
+                            conn.Open();
+                            string checkQuery = "SELECT COUNT(*) FROM Applications WHERE CategoryId = @CategoryId";
+                            using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                            {
+                                checkCmd.Parameters.AddWithValue("@CategoryId", selectedCategory.CategoryId);
+                                int count = (int)checkCmd.ExecuteScalar();
+                                if (count > 0)
+                                {
+                                    MessageBox.Show("Нельзя удалить категорию, так как она используется в заявках!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                            }
+
+                            string deleteQuery = "DELETE FROM BenefitCategories WHERE CategoryId = @CategoryId";
+                            using (SqlCommand cmd = new SqlCommand(deleteQuery, conn))
+                            {
+                                cmd.Parameters.AddWithValue("@CategoryId", selectedCategory.CategoryId);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        LoadCategories();
+                        MessageBox.Show("Категория удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка удаления категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
         }
     }
 
-    // 🔹 Модель категории льгот
     public class BenefitCategory
     {
         public int CategoryId { get; set; }

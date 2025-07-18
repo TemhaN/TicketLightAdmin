@@ -5,14 +5,16 @@
     <Grid>
         <StackPanel>
             <TextBlock Text="Категории льгот" FontSize="24" HorizontalAlignment="Center" Margin="10"/>
-            <Button Content="➕ Добавить категорию" Width="200" HorizontalAlignment="Center" Margin="10" Click="AddCategory_Click"/>
-
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <TextBox x:Name="CategoryNameTextBox" Width="200" Margin="5"/>
+                <TextBox x:Name="DescriptionTextBox" Width="300" Margin="5"/>
+                <Button Content="➕ Добавить категорию" Margin="5" Click="AddCategory_Click"/>
+            </StackPanel>
             <DataGrid x:Name="CategoriesDataGrid" AutoGenerateColumns="False" Height="300" Margin="10" IsReadOnly="True">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="ID" Binding="{Binding CategoryId}" Width="50"/>
                     <DataGridTextColumn Header="Название" Binding="{Binding CategoryName}" Width="200"/>
                     <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="300"/>
-
                     <DataGridTemplateColumn Header="Действия" Width="150">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -25,7 +27,6 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
-
         </StackPanel>
     </Grid>
 </Page>
